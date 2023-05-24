@@ -38,7 +38,7 @@ mkdir mul32
 cd mul32
 mkdir src
 ```
-Then add [spm.v]() [mul32.v]() files under the director ``Openlane/designs/mul32/src``
+Then add [spm.v](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/blob/main/spm.v) [mul32.v](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/blob/main/mul32.v) files under the director ``Openlane/designs/mul32/src``
 Then run the following commands to export the PDK_ROOT environmental variable. It should be installed with OpenLane under OpenLane/pdks but if you installed it in another location, export it to this location.
 ```
 cd OpenLane
@@ -140,7 +140,8 @@ We are considered with the user project area because this is the area we are usi
 * 38 User’s I/O Pads
 * 128 Logic probes (Control/Observe)
 * Access to the Management SoC wishbone bus
-Those things cannot change in the hardened user project wrapper in order to be integrated successfully with Caravel chip:
+
+The following items cannot change in the hardened user project wrapper in order to be integrated successfully with Caravel chip:
 * Area (2.920um x 3.520um)
 * Top module name "user_project_wrapper"
 * Pin Placement
@@ -177,14 +178,14 @@ The MC will be the same as MP and P1 will be the same as P0.
 
 ![image](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/assets/79912650/4cf2a0e5-c9da-4d5d-92a5-770492156275)
 
-The verilog file for this logic is ready in [user_proj_mul32](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/blob/main/user_proj_mul32.v). Now, we need to harden it. 
+The verilog file for this logic is ready in [user_proj_mul32.v](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/blob/main/user_proj_mul32.v). Now, we need to harden it. 
 
 ## Step 3: Hardening the User’s Wrapper
 To harden the user project, we will use [caravel_user_project](https://github.com/efabless/caravel_user_project) which is a template user project wrapper with an example user project provided to help us harden our designs. 
 
 #### Setting up the environment
 First, we need to create a new repository based on the caravel_user_project template and make sure your repo is public and includes a README.
-Follow [this](https://github.com/efabless/caravel_user_project/generate) in order to cerate a template repository from the [caravel_user_project](https://github.com/efabless/caravel_user_project).
+Follow [this](https://github.com/efabless/caravel_user_project/generate) in order to cerate a template repository from the [caravel_user_project](https://github.com/efabless/caravel_user_project). Name the repository ``user_proj_mul32`` (or any name you want but be careful to change the name in the rest of the steps). 
 Then clone the repository you created using:
 ```
 git clone <your github repo URL>
@@ -212,4 +213,46 @@ This command will setup your environment by installing the following:
 * openlane to harden your design
 * pdk
 
+To harden the project wrapper, you have three options:
+1. A single Macro: this means hardening the design then inserting it as a blackbox macro inside the user_project_wrapper and then hardening the project wrapper as a whole.
+2. Flattened design: this means you will flatten the design with the wrapper (integrate it as an RTL and not as blackbox GDS) and then harden it all at once.
+3. Multiple Macros: this is a mix of both, where you can use multiple macros as well as some designs hardened with the project wrapper 
 
+For this tutorial, we will use the first option. This means we will harden the design then integrate it as a blackbox with the wrapper and harden the wrapper. 
+
+#### To harden the design:
+1. copy [spm.v](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/blob/main/spm.v), [mul32.v](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/blob/main/mul32.v), and [user_proj_mul32.v](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/blob/main/user_proj_mul32.v) into ``user_proj_mul32/verilog/rtl`` directory. 
+2. Make a copy of the ``user_proj_example`` folder under ``user_proj_mul32/openlane`` and rename it as ``user_proj_mul32``
+3. Edit the configuration file ``config.json`` under the folder we created ``user_proj_mul32/openlane/user_proj_mul32`` you should change:
+    * "DESIGN_NAME" to user_proj_mul32
+    * "VERILOG_FILES" to the paths of the three verilog files we have
+    * Remove "CLOCK_NET": "counter.clk"
+    * Change "PL_TARGET_DENSITY" from 0.4 to 0.35 (5% more than the core utilization)
+   You will find the changed config.json file [here]()
+  
+4. Run the following command to run OpenLane ASIC flow and generate GDS for the design:
+```
+make user_proj_mul32
+```
+5. View the results of the OpenLane run under ``user_proj_mul32/openlane/user_proj_mul32/runs/<run_name>``
+
+#### To harden the wrapper:
+1. Edit the ``user_project_wrapper.v`` in ``user_proj_mul32/verilog/rtl`` directory and edit the instance name from ``user_proj_example`` to ``user_proj_mul32``
+2.  Edit the configuration file ``config.json`` under the folder we created ``user_proj_mul32/openlane/user_project_wrapper`` you should change:
+    * "VERILOG_FILES_BLACKBOX" to include the the paths of ``user_proj_mul32.v``
+    * "EXTRA_LEFS" to point to the ``user_proj_mul32.lef`` file 
+    * "EXTRA_GDS_FILES" to point to the ``user_proj_mul32.gds`` file 
+    * Add this line ``"GLB_RT_ADJUSTMENT": 0.05,`` which is an adjusment made for this project not something fixed
+   You will find the changed config.json file [here]()
+3.  Run the following command to run OpenLane ASIC flow and generate GDS for the wrapper:
+```
+make user_project_wrapper
+``` 
+Now you have the final GDS of the wrapper in ``user_proj_mul32/openlane/user_project_wrapper/runs/<run_tag>/results/final/gds``
+This is the final GDS layout of the wrapper:
+
+As you can see the design macro is placed in the middle of the layout which is not very good because long wires are used to connect the IOs. You can try changing the macro.cfg file to: 
+```
+mprj 1175 800 N
+```
+and try to harden it agian and see the difference in the layout. 
