@@ -251,7 +251,7 @@ make user_project_wrapper
 Now you have the final GDS of the wrapper in ``user_proj_mul32/openlane/user_project_wrapper/runs/<run_tag>/results/final/gds``
 This is the final GDS layout of the wrapper:
 
-As you can see the design macro is placed in the middle of the layout which is not very good because long wires are used to connect the IOs. You can try changing the macro.cfg file to: 
+As you can see the design macro is placed in the middle of the layout which is not very good because long wires are used to connect the IOs which increases the delay. You can try changing the macro.cfg file to: 
 ```
 mprj 1175 800 N
 ```
