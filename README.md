@@ -121,7 +121,8 @@ To open the temporary layout using Klayout, open Klayout and click on File, Impo
 And here is the layout after placement. This helps you to track what went wrong with your hardening process if the flow failed at a certain step:
 
 ![image](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/assets/79912650/b7924572-2cfe-48db-a4f0-40ee816f0bee)
-``
+
+
 Another important output you might check is the ``metrics.csv`` report. You will find it under ``OpenLane/designs/mul32/runs/run_1/reports``. It contain important metrics like:
 * Total number of cells used in the design 
 * Power consumption
@@ -147,6 +148,68 @@ Those things cannot change in the hardened user project wrapper in order to be i
 * Core Rings Width and Offset
 * PDN Vertical and Horizontal Straps Width
 
-To integrate the SPM design with the user wrapper, we will use [user_proj_mul32]() which will communicate with the management SoC throught the wishbone bus as shown below.  
+To integrate the SPM design with the user wrapper, we will use [user_proj_mul32](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/blob/main/user_proj_mul32.v) which will communicate with the management SoC throught the wishbone bus as shown below.  
 ![image](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/assets/79912650/10ecf6ca-65ab-4f5e-a60a-6b0560be42ee)
+
+
+In the wishbone communication, the management core will be the “master” and the peripheral in the user’s project area will be the “slave”. The master is responsible for initiating any read or write operation. Those are the wishbone slave interface signals and their explaination 
+| Signal Name in Verilog | # bits | 
+| --------------------- |
+
+![image](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/assets/79912650/432ca57b-6263-4aa2-9ca3-a4719ad673b2)
+
+This is an example waveview of how would the signals be in a read or write operation:
+
+![image](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/assets/79912650/6756bb66-b54f-4a83-925b-b8d5e6f61560)
+
+In the mul32 design, we will have a total of four 32-bit registers because the product is 64-bits and will be divided into two registers
+
+| Operand | Variable in Verilog | Address in memory | Name of register |
+| ------- | ------------------- | ----------------- | ---------------- |
+| Multiplicand | MC | 0x30000000 | reg_mprj_slave_X |
+| Multiplier | MP | 0x30000004 | reg_mprj_slave_Y |
+| Product (least significanr 32 bits) | P0[31:0] | 0x30000008 | reg_mprj_slave_P0 |
+| Product (most significanr 32 bits) | P0[63:32] | 0x3000000C | reg_mprj_slave_P1 |
+
+
+The difference between the MP and P0 wishbone slave ports is that the ack in the Product ports occur when wbs_we_i is 0; a read operation is taking place. Also, the ack must wait for the done signal in the P ports.
+The MC will be the same as MP and P1 will be the same as P0. 
+
+![image](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/assets/79912650/4cf2a0e5-c9da-4d5d-92a5-770492156275)
+
+The verilog file for this logic is ready in [user_proj_mul32](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/blob/main/user_proj_mul32.v). Now, we need to harden it. 
+
+## Step 3: Hardening the User’s Wrapper
+To harden the user project, we will use [caravel_user_project](https://github.com/efabless/caravel_user_project) which is a template user project wrapper with an example user project provided to help us harden our designs. 
+
+#### Setting up the environment
+First, we need to create a new repository based on the caravel_user_project template and make sure your repo is public and includes a README.
+Follow [this](https://github.com/efabless/caravel_user_project/generate) in order to cerate a template repository from the [caravel_user_project](https://github.com/efabless/caravel_user_project).
+Then clone the repository you created using:
+```
+git clone <your github repo URL>
+```
+To setup your local environment run:
+```
+cd <project_name> # project_name is the name of your repo
+
+mkdir dependencies
+
+export OPENLANE_ROOT=$(pwd)/dependencies/openlane_src # you need to export this whenever you start a new shell
+
+export PDK_ROOT=$(pwd)/dependencies/pdks # you need to export this whenever you start a new shell
+
+# export the PDK variant depending on your shuttle, if you don't know leave it to the default
+
+# for sky130 MPW shuttles....
+export PDK=sky130A
+
+make setup
+```
+This command will setup your environment by installing the following:
+* caravel_lite (a lite version of caravel)
+* management core for simulation
+* openlane to harden your design
+* pdk
+
 
