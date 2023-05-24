@@ -23,6 +23,7 @@ Other tools needed:
 * [GTKWave](https://sourceforge.net/projects/gtkwave/)
 
 ## Step 1: Hardening Macro using OpenLane
+[Openlane](https://github.com/The-OpenROAD-Project/OpenLane) is  
 #### OpenLane Installation:
 ```
 git clone https://github.com/The-OpenROAD-Project/Openlane.git
@@ -110,16 +111,42 @@ This is how it would look like:
 ![image](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/assets/79912650/0303a85a-fe56-4dfb-98d0-62c89c24dac6)
 
 
-You can examine the layout after different steps for example, if you want to view the layout after the placement step, for this you need def and lef files. The def file you can find in ``OpenLane/designs/mul32/runs/run_1/results/placement`` while the lef file you can find it in ``OpenLane/designs/mul32/runs/run_1/tmp``. You can take a copy of the ``merged.nom.lef`` file and place it in ``OpenLane/designs/mul32/runs/run_1/results/placement`` (the same dir as the def file).
+You can also examine the layout after a certain step not just the final one. For example, if you want to view the layout after the placement step, for this you need def and lef files. The def file you can find in ``OpenLane/designs/mul32/runs/run_1/results/placement`` while the lef file you can find it in ``OpenLane/designs/mul32/runs/run_1/tmp``. You can take a copy of the ``merged.nom.lef`` file and place it in ``OpenLane/designs/mul32/runs/run_1/results/placement`` (the same dir as the def file).
 To open the temporary layout using Klayout, open Klayout and click on File, Import, DEF/LEF, then add the mul32.def file and it will add the merged.nom.lef file in the same directory automatically. Then press OK. 
 
 ![image](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/assets/79912650/82cb8da6-68be-4422-b582-f67ac4188e23)
 ![image](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/assets/79912650/8af55e79-0910-4fc7-ae08-a225b0f87550)
 
 
-And here is the layout after placement. This helps you to track what went wrong with your hardening process if the flow failed:
+And here is the layout after placement. This helps you to track what went wrong with your hardening process if the flow failed at a certain step:
 
 ![image](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/assets/79912650/b7924572-2cfe-48db-a4f0-40ee816f0bee)
+``
+Another important output you might check is the ``metrics.csv`` report. You will find it under ``OpenLane/designs/mul32/runs/run_1/reports``. It contain important metrics like:
+* Total number of cells used in the design 
+* Power consumption
+* Core area
+* Number of violations
+and many other metrics.
+Another report is ``manufacturability.rpt`` which you can also find under ``OpenLane/designs/mul32/runs/run_1/reports``. It contains the magic DRC, the LVS, and the antenna violations summaries.
 
+## Step 2: Integrating the Design into the Caravel’s User Wrapper
 
+[Caravel](https://github.com/efabless/caravel/tree/main) is a template chip for the Open MPW and chipIgnite shuttles. It provides the neededinfrastructure for Open MPW/chipIgnite designs. In addition to the padframe, it contains two main areas; Management Area and User’s Project Area.
+We are considered with the user project area because this is the area we are using to integrate our design with. The User's area contain:
+* 10 mm2 silicon area
+* Four Supply domains: 2x1.8V and 2x3.3V
+* 38 User’s I/O Pads
+* 128 Logic probes (Control/Observe)
+* Access to the Management SoC wishbone bus
+Those things cannot change in the hardened user project wrapper in order to be integrated successfully with Caravel chip:
+* Area (2.920um x 3.520um)
+* Top module name "user_project_wrapper"
+* Pin Placement
+* Pin Sizes
+* Core Rings Width and Offset
+* PDN Vertical and Horizontal Straps Width
+
+To integrate the SPM design with the user wrapper, we will use [user_proj_mul32]() which will communicate with the management SoC throught the wishbone bus as shown below.  
+![image](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/assets/79912650/10ecf6ca-65ab-4f5e-a60a-6b0560be42ee)
 
