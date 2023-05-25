@@ -187,7 +187,7 @@ Make sure you followed the [quickstart guide](https://caravel-sim-infrastructure
 Make sure you updated the paths inside the ``design_info.yaml`` to match your paths as shown [here](https://github.com/efabless/caravel-sim-infrastructure/tree/main/cocotb#configure-the-repo). You can find the ``design_info.yaml``  file in the ```caravel-sim-infrastructure/cocotb/``` directory
 #### 3. Create the firmware program:
 The firmware is written in C code and it is the program that will be running on the Caravel management SoC. You can use it to make any configurations you want. You can find a description for all the firmware C APIs [here](https://caravel-sim-infrastructure.readthedocs.io/en/latest/C_api.html#firmware-apis)
-For example, you can use it to configure the GPIO pins to have a certain value as shown in the code below. You can find the source file [here](https://github.com/NouranAbdelaziz/caravel_user_project_cocotb_tutorial/blob/cocotb_dev/verilog/dv/cocotb/gpio_test/gpio_test.c):
+For example, you can use it to configure the GPIO pins to have a certain value as shown in the code below. You can find the source file [here](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/blob/main/cocotb/mul32_wb/mul32_wb.c):
 ```
 #include <common.h>
 
@@ -244,10 +244,11 @@ void main(){
 
 #### 4. Create the python testbench:
 The python testbench is used to monitor the signals of the Caravel chip just like the testbenches used in hardware simulators. You can find a description for all the python testbench APIs [here](https://caravel-sim-infrastructure.readthedocs.io/en/latest/python_api.html#python-apis). 
-Continuing on the example above,  if we want to check whether the gpios are set to the correct value, we can do that using the following code. You can find the source file [here](https://github.com/NouranAbdelaziz/caravel_user_project_cocotb_tutorial/blob/cocotb_dev/verilog/dv/cocotb/gpio_test/gpio_test.py):
+Continuing on the example above,  if we want to check whether the gpios are set to the correct value, we can do that using the following code. You can find the source file [here](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/blob/main/cocotb/mul32_wb/mul32_wb.py):
 
 ```
-from cocotb_includes import test_configure
+from 
+cludes import test_configure
 from cocotb_includes import report_test
 import cocotb
 
@@ -312,7 +313,7 @@ async def mul32_wb(dut):
    This compares the gpio value with the expected product value and print a string to the log file if they are equal and raises an error if they are not equal. 
 
 ### 5. Place the test files in the user project:
-Create a folder called cocotb in ``user_proj_mul32/verilog/dv/`` directory and place in it [cocotb_includes.py]() and [cocotb_tests.py](). Those files are essential for running any test. Then cereate a folder for this test in ``user_proj_mul32/verilog/dv/cocotb`` directory and call it ``mul32_wb`` and place in it [mul32_wb.c]() and [mul32_wb.py]() files. This will lead to this file sructure:
+Create a folder called cocotb in ``user_proj_mul32/verilog/dv/`` directory and place in it [cocotb_includes.py](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/blob/main/cocotb/cocotb_includes.py) and [cocotb_tests.py](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/blob/main/cocotb/cocotb_tests.py). Those files are essential for running any test. Then cereate a folder for this test in ``user_proj_mul32/verilog/dv/cocotb`` directory and call it ``mul32_wb`` and place in it [mul32_wb.c](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/blob/main/cocotb/mul32_wb/mul32_wb.c) and [mul32_wb.py](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/blob/main/cocotb/mul32_wb/mul32_wb.py) files. This will lead to this file sructure:
 ```
 | dv
 | ├── cocotb
