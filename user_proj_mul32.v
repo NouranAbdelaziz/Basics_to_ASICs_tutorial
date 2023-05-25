@@ -25,9 +25,9 @@ module user_proj_mul32
     input  [127:0] la_oenb,
 
     // IOs
-    input  [`MPRJ_IO_PADS-1:0] io_in,
-    output [`MPRJ_IO_PADS-1:0] io_out,
-    output [`MPRJ_IO_PADS-1:0] io_oeb,
+    input  [15:0] io_in,
+    output [15:0] io_out,
+    output [15:0] io_oeb,
 
     // IRQ
     output [2:0] irq
