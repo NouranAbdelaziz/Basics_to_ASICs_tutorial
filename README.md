@@ -179,8 +179,166 @@ The MC will be the same as MP and P1 will be the same as P0.
 ![image](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/assets/79912650/4cf2a0e5-c9da-4d5d-92a5-770492156275)
 
 The verilog file for this logic is ready in [user_proj_mul32.v](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/blob/main/user_proj_mul32.v). Now, we need to harden it. 
+## Step 3: Verifing the design using cocotb
 
-## Step 3: Hardening the User’s Wrapper
+#### 1. Install prerequisites:
+Make sure you followed the [quickstart guide](https://caravel-sim-infrastructure.readthedocs.io/en/latest/usage.html#quickstart-guide) to install the prerequisites and cloned the [Caravel cocotb simulation infrastructure repo](https://github.com/efabless/caravel-sim-infrastructure) 
+#### 2. Update design_info.yaml file:
+Make sure you updated the paths inside the ``design_info.yaml`` to match your paths as shown [here](https://github.com/efabless/caravel-sim-infrastructure/tree/main/cocotb#configure-the-repo). You can find the ``design_info.yaml``  file in the ```caravel-sim-infrastructure/cocotb/``` directory
+#### 3. Create the firmware program:
+The firmware is written in C code and it is the program that will be running on the Caravel management SoC. You can use it to make any configurations you want. You can find a description for all the firmware C APIs [here](https://caravel-sim-infrastructure.readthedocs.io/en/latest/C_api.html#firmware-apis)
+For example, you can use it to configure the GPIO pins to have a certain value as shown in the code below. You can find the source file [here](https://github.com/NouranAbdelaziz/caravel_user_project_cocotb_tutorial/blob/cocotb_dev/verilog/dv/cocotb/gpio_test/gpio_test.c):
+```
+#include <common.h>
+
+void main(){
+    // Enable managment gpio as output to use as indicator for finishing configuration  
+    mgmt_gpio_o_enable();
+    mgmt_gpio_wr(0);
+    enable_hk_spi(0); // disable housekeeping spi
+    // configure all gpios as  user out then chenge gpios from 32 to 37 before loading this configurations
+    configure_all_gpios(GPIO_MODE_MGMT_STD_OUTPUT);
+    
+    gpio_config_load(); // load the configuration 
+    enable_user_interface(); 
+    mgmt_gpio_wr(1); // configuration finished 
+
+    // write value 7 in the MC register (with address offset 0x0)
+    write_user_double_word(0x07,0x00);
+    mgmt_gpio_wr(0); // writing to MC finished 
+
+    // write value 3 in the MP register (with address offset 0x4)
+    write_user_double_word(0x03,0x1);
+    mgmt_gpio_wr(1); // writing to MP finished 
+
+    // read the first 32 bits of the product 
+    int P0 = read_user_double_word(0x02);
+
+    set_gpio_l(P0);
+
+    mgmt_gpio_wr(0); // Writing to GPIOs finished 
+
+    // read the second 32 bits of the product 
+    int P1 = read_user_double_word(0x3);
+
+    set_gpio_l(P1);
+    
+    mgmt_gpio_wr(1); // Writing to GPIOs finished 
+
+    return;
+}
+```
+* ``#include <common.h>``  is used to include the firmware APIs. This must be included in any firmware that will use the APIs provided. 
+* ``mgmt_gpio_o_enable();`` is a function used to set the management gpio to output (this is a single gpio pin inside used by the management soc). You can read more about this function [here](https://caravel-sim-infrastructure.readthedocs.io/en/latest/C_api.html#_CPPv418mgmt_gpio_o_enablev). 
+* ``mgmt_gpio_wr(0);`` is a function to set the management gpio pin to a certain value. Here I am setting it to 0 and later will set it to 1 after the configurations are finished. This is to make sure in the python testbench that the configurations are done and you can begin to check the gpios value. You can read more about this function [here](https://caravel-sim-infrastructure.readthedocs.io/en/latest/C_api.html#_CPPv412mgmt_gpio_wrb). 
+* ``enable_hk_spi(0);`` is used to disable housekeeping spi and this is required for gpio 3 to function as a normal gpio.  
+* ``configure_all_gpios(GPIO_MODE_MGMT_STD_OUTPUT);`` is a function used to configure all caravel’s 38 gpio pins with a certain mode. Here I chose the ``GPIO_MODE_MGMT_STD_OUTPUT`` mode because I will use the gpios as output and the management SoC will be the one using the gpios not the user project. You can read more about this function [here](https://caravel-sim-infrastructure.readthedocs.io/en/latest/C_api.html#_CPPv419configure_all_gpios9gpio_mode). 
+* ``gpio_config_load();`` is a function to load the gpios configuration. It must be called whenever we change gpio configuration. 
+* ``enable_user_interface();`` is necessary when reading or writing between wishbone and user project if interface isn't enabled no ack would be recieve and the command will be stuck. You can read more about it [here](https://caravel-sim-infrastructure.readthedocs.io/en/latest/C_api.html#_CPPv421enable_user_interfacev)
+* * ``mgmt_gpio_wr(1);`` is a function to set the management gpio to 1 to indicate configurations are done as explained above.
+* ``write_user_double_word(0x07,0x00);`` is a function used to write double word (four bytes) at a certain offset. Here I want to write to the MC register which has address 0x0 a value of 7. You can check more about the function [here](https://caravel-sim-infrastructure.readthedocs.io/en/latest/C_api.html#_CPPv422write_user_double_wordji)
+* ``read_user_double_word(0x02)`` is a function used to write double word (four bytes) at a certain offset. Here I want to read from P0 register which has address 0x8 (offset 2). You can check more about the function [here](https://caravel-sim-infrastructure.readthedocs.io/en/latest/C_api.html#_CPPv421read_user_double_wordi)
+* Same thing will be done for MP and P1
+* ``set_gpio_l(P0);`` is a function used to set the value of the lower 32 gpios with a certain value. In this example, I am setting the first 32 gpios to have the value of P0, then the value of P1. you can read more about this function [here](https://caravel-sim-infrastructure.readthedocs.io/en/latest/C_api.html#_CPPv410set_gpio_lj). 
+
+
+#### 4. Create the python testbench:
+The python testbench is used to monitor the signals of the Caravel chip just like the testbenches used in hardware simulators. You can find a description for all the python testbench APIs [here](https://caravel-sim-infrastructure.readthedocs.io/en/latest/python_api.html#python-apis). 
+Continuing on the example above,  if we want to check whether the gpios are set to the correct value, we can do that using the following code. You can find the source file [here](https://github.com/NouranAbdelaziz/caravel_user_project_cocotb_tutorial/blob/cocotb_dev/verilog/dv/cocotb/gpio_test/gpio_test.py):
+
+```
+from cocotb_includes import test_configure
+from cocotb_includes import report_test
+import cocotb
+
+@cocotb.test()
+@report_test
+async def mul32_wb(dut):
+    caravelEnv = await test_configure(dut,timeout_cycles=3346140)
+
+    cocotb.log.info(f"[TEST] Start mul32_wb test")  
+    # wait for start of sending
+    await caravelEnv.release_csb()
+    await caravelEnv.wait_mgmt_gpio(1)
+    cocotb.log.info(f"[TEST] finish configuration") 
+    
+    # wait until writing to MC finish
+    await caravelEnv.wait_mgmt_gpio(0)
+    cocotb.log.info(f"[TEST] finished writing to MC") 
+
+    # wait until writing to MP finish
+    await caravelEnv.wait_mgmt_gpio(1)
+    cocotb.log.info(f"[TEST] finished writing to MP") 
+
+    # wait until reading from P0 finish
+    await caravelEnv.wait_mgmt_gpio(0)
+    cocotb.log.info(f"[TEST] finished reading P0")
+    gpios_value_str = caravelEnv.monitor_gpio(37, 0).binstr
+    cocotb.log.info (f"All gpios value '{gpios_value_str}'")
+    gpio_value_int_0 = caravelEnv.monitor_gpio(37, 0).integer
+    expected_P0_value = 21
+
+
+     # wait until reading from P0 finish
+    await caravelEnv.wait_mgmt_gpio(1)
+    cocotb.log.info(f"[TEST] finished reading P1")
+    gpios_value_str = caravelEnv.monitor_gpio(37, 0).binstr
+    cocotb.log.info (f"All gpios value'{gpios_value_str}'")
+    gpio_value_int_1 = caravelEnv.monitor_gpio(37, 0).integer
+    expected_P1_value = 0
+
+    if (gpio_value_int_0==expected_P0_value and gpio_value_int_1==expected_P1_value):
+        cocotb.log.info (f"[TEST] Pass the P0 (product least significant 32 bits) value is '{gpio_value_int_0}' and P1 (product most significant 32 bits) value is '{gpio_value_int_1}'.")
+    else:
+        cocotb.log.error (f"[TEST] Fail the P0 value (product least significant 32 bits) is '{gpio_value_int_0}' and P1 (product most significant 32 bits) value is '{gpio_value_int_1}' expected them to be P0: '{expected_P0_value}' and P1: '{expected_P1_value}'")
+```
+* ``from cocotb_includes import *`` is to include the python APIs for Caravel. It must be included in any python testbench you create 
+* ``import cocotb`` is to import cocotb library 
+* ``@cocotb.test()`` is a function wrapper which must be used before any cocotb test. You can read more about it [here](https://docs.cocotb.org/en/stable/quickstart.html#creating-a-test)
+* ``@report_test `` is a function wrapper which is used to configure the test reports
+* ``async def gpio_test(dut):``  is to define the test function. The async keyword is the syntax used to define python coroutine function (a function which can run in the background and does need to complete executing in order to return to the caller function). You must name this function the same name you will give the test in the ``-test`` argument while running. Here for example I used ``gpio_test`` for both. 
+* ``caravelEnv = await test_configure(dut)`` is used to set up what is needed for the caravel testing environment such as reset, clock, and timeout cycles.This function must be called before any test as it returns an object with type Cravel_env which has the functions we can use to monitor different Caravel signals.
+* ``await caravelEnv.release_csb()`` is to release housekeeping spi. By default, the csb is gpio value is 1 in order to disable housekeeping spi. This function drives csb gpio pin to Z to enable using it as output.  
+* ``await caravelEnv.wait_mgmt_gpio(1)`` is to wait until the management gpio is 1 to ensure that all the configurations done in the firmware are finished. The ``await`` keyword is used to stop the execution of the coroutine until it returns the results. You can read more about the function [here](https://caravel-sim-infrastructure.readthedocs.io/en/latest/python_api.html#interfaces.caravel.Caravel_env.wait_mgmt_gpio)
+* ``gpios_value_str = caravelEnv.monitor_gpio(37, 0).binstr`` is used to get the value of the gpios. The monitor_gpio() function takes the gpio number or range as a tuple and returns a [BinaryValue](https://docs.cocotb.org/en/stable/library_reference.html#cocotb.binary.BinaryValue) object. You can read more about the function [here](https://caravel-sim-infrastructure.readthedocs.io/en/latest/python_api.html#interfaces.caravel.Caravel_env.monitor_gpio). One of the functions   of the BinaryValue object is binstr which returns the binary value as a string (string consists of 0s and 1s)
+* ``cocotb.log.info (f"All gpios '{gpios_value_str}'")``will print the given string to the full.log file which can be useful to check what went wrong if the test fails
+* ``gpio_value_int_0 = caravelEnv.monitor_gpio(37, 0).integer`` will return the value of the gpios as an integer
+* ``` 
+ if (gpio_value_int_0==expected_P0_value and gpio_value_int_1==expected_P1_value):
+        cocotb.log.info (f"[TEST] Pass the P0 (product least significant 32 bits) value is '{gpio_value_int_0}' and P1 (product most significant 32 bits) value is '{gpio_value_int_1}'.")
+    else:
+        cocotb.log.error (f"[TEST] Fail the P0 value (product least significant 32 bits) is '{gpio_value_int_0}' and P1 (product most significant 32 bits) value is '{gpio_value_int_1}' expected them to be P0: '{expected_P0_value}' and P1: '{expected_P1_value}'")
+   ```
+   This compares the gpio value with the expected product value and print a string to the log file if they are equal and raises an error if they are not equal. 
+
+### 5. Place the test files in the user project:
+Create a folder called cocotb in ``user_proj_mul32/verilog/dv/`` directory and place in it [cocotb_includes.py]() and [cocotb_tests.py](). Those files are essential for running any test. Then cereate a folder for this test in ``user_proj_mul32/verilog/dv/cocotb`` directory and call it ``mul32_wb`` and place in it [mul32_wb.c]() and [mul32_wb.py]() files. This will lead to this file sructure:
+```
+| dv
+| ├── cocotb
+| │   ├── mul32_wb
+| │   │   └── mul32_wb.py
+| │   │   └── mul32_wb.c
+| |   ├── cocotb_includes.py
+| │   └── cocotb_tests.py
+|
+```
+### 6. Import the new tests to ``cocotb_tests.py``:
+Add this line ``from mul32_wb.mul32_wb import mul32_wb`` in ``caravel_user_project/verilog/dv/cocotb/cocotb_tests.py``. You will find the import for this file exists but in general you need to add any new tests to this file.
+### 7. Run the test:
+To run the test you have to be in ``caravel-sim-infrastructure/cocotb/`` directory and run the ``verify_cocotb.py`` script using the following command
+```
+python3 verify_cocotb.py -test mul32_wb -sim RTL -tag mul32_wb_test
+```
+You can know more about the argument options [here](https://github.com/efabless/caravel-sim-infrastructure/tree/main/cocotb#run-a-test)
+### 8. Check if the test passed or failed:
+When you run the above you will get this at the end of terminal output:
+```
+Test: RTL-mul32_wb has passed
+```
+It shows that the test has passsed. You can check the log files resulted from compilation of the c code (firmware) in ``caravel-sim-infrastructure/cocotb/sim/mul32_wb_test/RTL-mul32_wb/firmware.log`` and the results from compiling the verilog and running the python testbench in ``caravel-sim-infrastructure/cocotb/sim/mul32_wb_test/RTL-mul32_wb/compilation.log`` 
+
+## Step 4: Hardening the User’s Wrapper
 To harden the user project, we will use [caravel_user_project](https://github.com/efabless/caravel_user_project) which is a template user project wrapper with an example user project provided to help us harden our designs. 
 
 #### Setting up the environment
