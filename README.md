@@ -50,7 +50,7 @@ make mount
 ```
 Then use this command to add the default configuration file to the mul32 design 
 ```
-./flow.tcl -design mul32 -init_design_config -add_to_designs -confif_file config.tcl 
+./flow.tcl -design mul32 -init_design_config -add_to_designs 
 ```
 You will then find a config.json file created in ``OpenLane/designs/mul32`` directory with the following content:
 ```
@@ -74,7 +74,7 @@ The DESIGN_IS_CORE variable indicates whether the design is a macro or an entire
 }
 ```
 For more OpenLane configuration variables, you can check [this](https://openlane.readthedocs.io/en/latest/reference/configuration.html)
-The last thing you need to do is to actually run the flow for mul32 design. You can optionally pass a tag name as well
+The last thing you need to do is to actually run the flow for mul32 design. You can optionally pass a tag name as well using ``-tag`` to give a name for your run folder instead of automatically naming it with the date and time of the run which could be confusing. 
 ```
 ./flow.tcl -design mul32 -tag run_1
 ```
