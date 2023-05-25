@@ -23,7 +23,7 @@ Other tools needed:
 * [GTKWave](https://sourceforge.net/projects/gtkwave/)
 
 ## Step 1: Hardening Macro using OpenLane
-[Openlane](https://github.com/The-OpenROAD-Project/OpenLane) is  
+[Openlane](https://github.com/The-OpenROAD-Project/OpenLane) is an automated RTL to GDSII flow based on several components including OpenROAD, Yosys, Magic, Netgen, CVC, SPEF-Extractor, KLayout and a number of custom scripts for design exploration and optimization. The flow performs all ASIC implementation steps from RTL all the way down to GDSII.
 #### OpenLane Installation:
 ```
 git clone https://github.com/The-OpenROAD-Project/Openlane.git
@@ -154,8 +154,6 @@ To integrate the SPM design with the user wrapper, we will use [user_proj_mul32]
 
 
 In the wishbone communication, the management core will be the “master” and the peripheral in the user’s project area will be the “slave”. The master is responsible for initiating any read or write operation. Those are the wishbone slave interface signals and their explaination 
-| Signal Name in Verilog | # bits | 
-| --------------------- |
 
 ![image](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/assets/79912650/432ca57b-6263-4aa2-9ca3-a4719ad673b2)
 
@@ -179,8 +177,14 @@ The MC will be the same as MP and P1 will be the same as P0.
 ![image](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/assets/79912650/4cf2a0e5-c9da-4d5d-92a5-770492156275)
 
 The verilog file for this logic is ready in [user_proj_mul32.v](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/blob/main/user_proj_mul32.v). Now, we need to harden it. 
-## Step 3: Verifing the design using cocotb
 
+## Step 3: Verifing the design using cocotb
+First, we need to create a new repository based on the caravel_user_project template and make sure your repo is public and includes a README.
+Follow [this](https://github.com/efabless/caravel_user_project/generate) in order to cerate a template repository from the [caravel_user_project](https://github.com/efabless/caravel_user_project). Name the repository ``user_proj_mul32`` (or any name you want but be careful to change the name in the rest of the steps). 
+Then clone the repository you created using:
+```
+git clone <your github repo URL>
+```
 #### 1. Install prerequisites:
 Make sure you followed the [quickstart guide](https://caravel-sim-infrastructure.readthedocs.io/en/latest/usage.html#quickstart-guide) to install the prerequisites and cloned the [Caravel cocotb simulation infrastructure repo](https://github.com/efabless/caravel-sim-infrastructure) 
 #### 2. Update design_info.yaml file:
@@ -247,8 +251,7 @@ The python testbench is used to monitor the signals of the Caravel chip just lik
 Continuing on the example above,  if we want to check whether the gpios are set to the correct value, we can do that using the following code. You can find the source file [here](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/blob/main/cocotb/mul32_wb/mul32_wb.py):
 
 ```
-from 
-cludes import test_configure
+from cocotb_includes import test_configure
 from cocotb_includes import report_test
 import cocotb
 
@@ -304,7 +307,7 @@ async def mul32_wb(dut):
 * ``gpios_value_str = caravelEnv.monitor_gpio(37, 0).binstr`` is used to get the value of the gpios. The monitor_gpio() function takes the gpio number or range as a tuple and returns a [BinaryValue](https://docs.cocotb.org/en/stable/library_reference.html#cocotb.binary.BinaryValue) object. You can read more about the function [here](https://caravel-sim-infrastructure.readthedocs.io/en/latest/python_api.html#interfaces.caravel.Caravel_env.monitor_gpio). One of the functions   of the BinaryValue object is binstr which returns the binary value as a string (string consists of 0s and 1s)
 * ``cocotb.log.info (f"All gpios '{gpios_value_str}'")``will print the given string to the full.log file which can be useful to check what went wrong if the test fails
 * ``gpio_value_int_0 = caravelEnv.monitor_gpio(37, 0).integer`` will return the value of the gpios as an integer
-* ``` 
+``` 
  if (gpio_value_int_0==expected_P0_value and gpio_value_int_1==expected_P1_value):
         cocotb.log.info (f"[TEST] Pass the P0 (product least significant 32 bits) value is '{gpio_value_int_0}' and P1 (product most significant 32 bits) value is '{gpio_value_int_1}'.")
     else:
@@ -312,9 +315,10 @@ async def mul32_wb(dut):
    ```
    This compares the gpio value with the expected product value and print a string to the log file if they are equal and raises an error if they are not equal. 
 
-### 5. Place the test files in the user project:
+#### 5. Place the test files in the user project:
 Create a folder called cocotb in ``user_proj_mul32/verilog/dv/`` directory and place in it [cocotb_includes.py](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/blob/main/cocotb/cocotb_includes.py) and [cocotb_tests.py](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/blob/main/cocotb/cocotb_tests.py). Those files are essential for running any test. Then cereate a folder for this test in ``user_proj_mul32/verilog/dv/cocotb`` directory and call it ``mul32_wb`` and place in it [mul32_wb.c](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/blob/main/cocotb/mul32_wb/mul32_wb.c) and [mul32_wb.py](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/blob/main/cocotb/mul32_wb/mul32_wb.py) files. This will lead to this file sructure:
 ```
+verilog
 | dv
 | ├── cocotb
 | │   ├── mul32_wb
@@ -324,15 +328,15 @@ Create a folder called cocotb in ``user_proj_mul32/verilog/dv/`` directory and p
 | │   └── cocotb_tests.py
 |
 ```
-### 6. Import the new tests to ``cocotb_tests.py``:
+#### 6. Import the new tests to ``cocotb_tests.py``:
 Add this line ``from mul32_wb.mul32_wb import mul32_wb`` in ``caravel_user_project/verilog/dv/cocotb/cocotb_tests.py``. You will find the import for this file exists but in general you need to add any new tests to this file.
-### 7. Run the test:
+#### 7. Run the test:
 To run the test you have to be in ``caravel-sim-infrastructure/cocotb/`` directory and run the ``verify_cocotb.py`` script using the following command
 ```
 python3 verify_cocotb.py -test mul32_wb -sim RTL -tag mul32_wb_test
 ```
 You can know more about the argument options [here](https://github.com/efabless/caravel-sim-infrastructure/tree/main/cocotb#run-a-test)
-### 8. Check if the test passed or failed:
+#### 8. Check if the test passed or failed:
 When you run the above you will get this at the end of terminal output:
 ```
 Test: RTL-mul32_wb has passed
@@ -340,15 +344,10 @@ Test: RTL-mul32_wb has passed
 It shows that the test has passsed. You can check the log files resulted from compilation of the c code (firmware) in ``caravel-sim-infrastructure/cocotb/sim/mul32_wb_test/RTL-mul32_wb/firmware.log`` and the results from compiling the verilog and running the python testbench in ``caravel-sim-infrastructure/cocotb/sim/mul32_wb_test/RTL-mul32_wb/compilation.log`` 
 
 ## Step 4: Hardening the User’s Wrapper
-To harden the user project, we will use [caravel_user_project](https://github.com/efabless/caravel_user_project) which is a template user project wrapper with an example user project provided to help us harden our designs. 
+To harden the user project, we will use [caravel_user_project](https://github.com/efabless/caravel_user_project) template we cereated and cloned in the above step. 
 
 #### Setting up the environment
-First, we need to create a new repository based on the caravel_user_project template and make sure your repo is public and includes a README.
-Follow [this](https://github.com/efabless/caravel_user_project/generate) in order to cerate a template repository from the [caravel_user_project](https://github.com/efabless/caravel_user_project). Name the repository ``user_proj_mul32`` (or any name you want but be careful to change the name in the rest of the steps). 
-Then clone the repository you created using:
-```
-git clone <your github repo URL>
-```
+
 To setup your local environment run:
 ```
 cd <project_name> # project_name is the name of your repo
