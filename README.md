@@ -1,5 +1,12 @@
-# Basics_to_ASICs_tutorial
-In this tutorial you will learn how to ....
+# Design_integration_into_Caravel_tutorial
+In this tutorial you will learn how to integrate a design into [Caravel]() which is a  a ready-to-use test harness for creating designs with the Google/Skywater 130nm Open PDK. You will be able to know first how to harden your design using [OpenLane]() which is an automated RTL to GDS flow, then how to integrate the design RTL into the user project wrapper (the part in caravel which the users place their designs). After that, you will be shown how to use cocotb to verify the design using APIs customized for Caravel verification. Finally, you will be shown how to harden the user project wrapper. The design example used in this tutorial is SPM (serial parllel mutiplier) which take two 32-bit numbers, perform multiplication to produce a 64-
+bit product. However,one of the inputs is parallel and the other is serial and we get a serial output.    
+
+## Design Overview:
+The SPM design receives a 32-bit input standing for the multiplicand (x) and with each clock cycle, the least significant bit is being read from the multiplier (y). One bit from the product (p) is calculated and sent as an output. We can use the SPM to create a full parallel version out of it as shown in the diagaram bellow. The mul32 module receives the mp and mc 32 bit registersand shifts the multiplier to the right each clock cycle and feeds its least significant bit to the spm. Then it takes the spm output (p), concatenates it to the final output and shifts it to the right until the multiplication process is done (64 clock cycles).It also receives a start signal and sends the final product along with a done signal when the process is finished.
+
+![image](https://github.com/NouranAbdelaziz/Caravel_design_integration_and_hardening_tutorial/assets/79912650/a418f9d2-d2fb-426e-9327-b9ffa00f81de)
+
 
 ## Prerequisites:
 * GNU Make
@@ -21,7 +28,7 @@ brew install –-cask docker
 Other tools needed:
 * [Klayout](https://www.klayout.de/build.html)
 * [GTKWave](https://sourceforge.net/projects/gtkwave/)
-
+ 
 ## Step 1: Hardening Macro using OpenLane
 [Openlane](https://github.com/The-OpenROAD-Project/OpenLane) is an automated RTL to GDSII flow based on several components including OpenROAD, Yosys, Magic, Netgen, CVC, SPEF-Extractor, KLayout and a number of custom scripts for design exploration and optimization. The flow performs all ASIC implementation steps from RTL all the way down to GDSII.
 #### OpenLane Installation:
@@ -201,7 +208,7 @@ void main(){
     mgmt_gpio_wr(0);
     enable_hk_spi(0); // disable housekeeping spi
     // configure all gpios as  user out then chenge gpios from 32 to 37 before loading this configurations
-    configure_all_gpios(GPIO_MODE_MGMT_STD_OUTPUT);
+    configure_all_gpios(GPIO_MODE_MGMT_STD_OUT);
     
     gpio_config_load(); // load the configuration 
     enable_user_interface(); 
@@ -280,7 +287,7 @@ async def mul32_wb(dut):
     gpios_value_str = caravelEnv.monitor_gpio(37, 0).binstr
     cocotb.log.info (f"All gpios value '{gpios_value_str}'")
     gpio_value_int_0 = caravelEnv.monitor_gpio(37, 0).integer
-    expected_P0_value = 21
+    expected_P0_value = 23
 
 
      # wait until reading from P0 finish
@@ -329,19 +336,74 @@ verilog
 |
 ```
 #### 6. Import the new tests to ``cocotb_tests.py``:
-Add this line ``from mul32_wb.mul32_wb import mul32_wb`` in ``caravel_user_project/verilog/dv/cocotb/cocotb_tests.py``. You will find the import for this file exists but in general you need to add any new tests to this file.
-#### 7. Run the test:
+Add this line ``from mul32_wb.mul32_wb import mul32_wb`` in ``user_proj_mul32/verilog/dv/cocotb/cocotb_tests.py``. You will find the import for this file exists but in general you need to add any new tests to this file.
+#### 7. Add rtl files to includes:
+In the file ``includes.rtl.caravel_user_project`` in the directory ``user_proj_mul32/verilog/includes/includes.rtl.caravel_user_project`` add those lines to include all the RTL files of the design:
+```
+-v $(USER_PROJECT_VERILOG)/rtl/user_proj_mul32.v
+-v $(USER_PROJECT_VERILOG)/rtl/mul32.v
+-v $(USER_PROJECT_VERILOG)/rtl/spm.v
+-v $(USER_PROJECT_VERILOG)/rtl/user_defines.v
+```
+#### 8. Run the test:
 To run the test you have to be in ``caravel-sim-infrastructure/cocotb/`` directory and run the ``verify_cocotb.py`` script using the following command
 ```
 python3 verify_cocotb.py -test mul32_wb -sim RTL -tag mul32_wb_test
 ```
 You can know more about the argument options [here](https://github.com/efabless/caravel-sim-infrastructure/tree/main/cocotb#run-a-test)
-#### 8. Check if the test passed or failed:
-When you run the above you will get this at the end of terminal output:
+#### 9. Check if the test passed or failed:
+When you run the above you will get this ouput:
+```
+Run tag: mul32_wb_test 
+invalid mail None
+Start running test:  RTL-mul32_wb 
+Error: Fail to compile the C code for more info refer to /home/nouran/caravel-sim-infrastructure/cocotb/sim/mul32_wb_test/RTL-mul32_wb/firmware.log 
+```
+It shows that there is an error in the firmware c-code and it could'nt be compiled. You should check the ``firmware.log`` log file in the ``caravel-sim-infrastructure/cocotb/sim/mul32_wb_test/RTL-mul32_wb/firmware.log`` directory to check any firmware errors.
+In the log file you will find this error:
+```
+/home/nouran/user_proj_mul32/verilog/dv/cocotb/mul32_wb/mul32_wb.c: In function 'main':
+/home/nouran/user_proj_mul32/verilog/dv/cocotb/mul32_wb/mul32_wb.c:9:25: error: 'GPIO_MODE_MGMT_STD_OUT' undeclared (first use in this function); did you mean 'GPIO_MODE_MGMT_STD_OUTPUT'?
+    9 |     configure_all_gpios(GPIO_MODE_MGMT_STD_OUT);
+      |                         ^~~~~~~~~~~~~~~~~~~~~~
+      |                         GPIO_MODE_MGMT_STD_OUTPUT
+/home/nouran/user_proj_mul32/verilog/dv/cocotb/mul32_wb/mul32_wb.c:9:25: note: each undeclared identifier is reported only once for each function it appears in
+Error: when generating hex
+```
+#### 10. Modify the firmware:
+The error was because passign the wrong gpio mode name. To fix this, you should change `configure_all_gpios(GPIO_MODE_MGMT_STD_OUT);` to `configure_all_gpios(GPIO_MODE_MGMT_STD_OUTPUT);` and rerun. 
+#### 11. Check if the test passed or failed:
+ When you rerun you will get the following at the end of the terminal output:
+ ```                                                     
+Fail: Test RTL-mul32_wb has Failed for more info refer to /home/nouran/caravel-sim-infrastructure/cocotb/sim/mul32_wb_test/RTL-mul32_wb/mul32_wb.log
+ ```
+
+The test has failed. You should check the `compilation.log` log file in the directory ``caravel-sim-infrastructure/cocotb/sim/mul32_wb_test/RTL-mul32_wb/``. You will find the following error message:
+```
+ 2854925.00ns ERROR    cocotb                             [TEST] Fail the P0 value (product least significant 32 bits) is '21' and P1 (product most significant 32 bits) value is '0' expected them to be P0: '23' and P1: '0'
+2854925.00ns INFO     cocotb.regression                  report_test.<locals>.wrapper_func failed
+                                                         Traceback (most recent call last):
+                                                           File "/home/nouran/caravel-sim-infrastructure/cocotb/interfaces/common_functions/test_functions.py", line 120, in wrapper_func
+                                                             raise cocotb.result.TestComplete(f"Test failed {msg}")
+                                                         cocotb.result.TestComplete: Test failed with (0)criticals (1)errors (0)warnings 
+2854925.00ns INFO     cocotb.regression                  **************************************************************************************************************************************
+                                                         ** TEST                                                                          STATUS  SIM TIME (ns)  REAL TIME (s)  RATIO (ns/s) **
+                                                         **************************************************************************************************************************************
+                                                         ** interfaces.common_functions.test_functions.report_test.<locals>.wrapper_func   FAIL     2854925.00          73.16      39023.67  **
+                                                         **************************************************************************************************************************************
+                                                         ** TESTS=1 PASS=0 FAIL=1 SKIP=0                                                            2854925.00          73.17      39015.46  **
+                                                         **************************************************************************************************************************************
+```
+This means the result weren't as expected and test failed message was raised because of the cocotb.log.error() function. 
+### 12. Modify the python test bench:
+The error is because the expected value is 23 is not equal to the gpios value 21. To fix this change the expected value to 21 ``expected_P0_value = 23`` and rerun
+### 13. Check if the test passed or failed:
+When you run the modified code you will get this at the end of terminal output:
 ```
 Test: RTL-mul32_wb has passed
 ```
 It shows that the test has passsed. You can check the log files resulted from compilation of the c code (firmware) in ``caravel-sim-infrastructure/cocotb/sim/mul32_wb_test/RTL-mul32_wb/firmware.log`` and the results from compiling the verilog and running the python testbench in ``caravel-sim-infrastructure/cocotb/sim/mul32_wb_test/RTL-mul32_wb/compilation.log`` 
+
 
 ## Step 4: Hardening the User’s Wrapper
 To harden the user project, we will use [caravel_user_project](https://github.com/efabless/caravel_user_project) template we cereated and cloned in the above step. 
