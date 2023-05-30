@@ -395,9 +395,9 @@ The test has failed. You should check the `compilation.log` log file in the dire
                                                          **************************************************************************************************************************************
 ```
 This means the result weren't as expected and test failed message was raised because of the cocotb.log.error() function. 
-### 12. Modify the python test bench:
+#### 12. Modify the python test bench:
 The error is because the expected value is 23 is not equal to the gpios value 21. To fix this change the expected value to 21 ``expected_P0_value = 23`` and rerun
-### 13. Check if the test passed or failed:
+#### 13. Check if the test passed or failed:
 When you run the modified code you will get this at the end of terminal output:
 ```
 Test: RTL-mul32_wb has passed
