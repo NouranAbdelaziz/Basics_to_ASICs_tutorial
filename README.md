@@ -452,19 +452,44 @@ For this tutorial, we will use the first option. This means we will harden the d
     * "DESIGN_NAME" to user_proj_mul32
     * "VERILOG_FILES" to the paths of the three verilog files we have.
     * Remove "CLOCK_NET": "counter.clk"
-    * Change "PL_TARGET_DENSITY" from 0.4 to 0.35 (5% more than the core utilization)
+    * Remove "FP_SIZING" and "" variables. This will make the floor planning sizing to be relative by default and you need to specify the   "FP_CORE_UTIL".
+    * Set "FP_CORE_UTIL" to be 20 and "FP_ASPECT_RATIO" to be 0.6
    You will find the changed config.json file [here]()
   
 4. Run the following command to run OpenLane ASIC flow and generate GDS for the design:
 ```
 make user_proj_mul32
 ```
-5.  View the results of the OpenLane run under ``user_proj_mul32/openlane/user_proj_mul32/runs/<run_name>``
+5. If you used an updated Openlane version, you will get this warning when you run Openlane:
+```
+[WARNING]: OpenLane may not function properly: The version of open_pdks used in building the PDK does not match the version OpenLane was tested on (installed: e6f9c8876da77220403014b116761b0b2d79aab4, tested: af3485525297d5cbe93c129ea853da2d588fac41)
+```
+To solve this issue, you should update the PDK as well by running:
+```
+export OPEN_PDKS_COMMIT=af3485525297d5cbe93c129ea853da2d588fac41 #Note: Use the PDK version which is stated in the warning. 
+make pdk-with-volare 
+```
+Then rerun
+```
+make user_proj_mul32
+```
+6.  View the results of the OpenLane run under ``user_proj_mul32/openlane/user_proj_mul32/runs/<run_name>``
 
 #### To harden the wrapper:
 1. Edit the ``user_project_wrapper.v`` in ``user_proj_mul32/verilog/rtl`` directory and edit the instance name from ``user_proj_example`` to ``user_proj_mul32``
-2.  Edit the configuration file ``config.json`` under the folder we created ``user_proj_mul32/openlane/user_project_wrapper`` you should change:
-    * "VERILOG_FILES_BLACKBOX" to include the the paths of ``user_proj_mul32.v``
+2. Add those lines:
+```
+// Not used
+//IO
+assign io_oeb = 0;
+assign io_out = 0;
+// LA
+// Not used
+assign la_data_out = 0;
+```
+The updated user_project_wrapper could be found [here]()
+4.  Edit the configuration file ``config.json`` under the folder we created ``user_proj_mul32/openlane/user_project_wrapper`` you should change:
+    * "VERILOG_FILES_BLACKBOX" to include the the path of the gate level netlist of ``user_proj_mul32.v``
     * "EXTRA_LEFS" to point to the ``user_proj_mul32.lef`` file 
     * "EXTRA_GDS_FILES" to point to the ``user_proj_mul32.gds`` file 
     * Add this line ``"GLB_RT_ADJUSTMENT": 0.05,`` which is an adjusment made for this project not something fixed
