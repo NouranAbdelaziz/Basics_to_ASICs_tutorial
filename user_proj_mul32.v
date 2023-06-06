@@ -16,18 +16,8 @@ module user_proj_mul32
     input [3:0] wbs_sel_i,
     input [31:0] wbs_dat_i,
     input [31:0] wbs_adr_i,
-    output wbs_ack_o,
-    output [31:0] wbs_dat_o,
-
-    // Logic Analyzer Signals
-    input  [127:0] la_data_in,
-    output [127:0] la_data_out,
-    input  [127:0] la_oenb,
-
-    // IOs
-    input  [15:0] io_in,
-    output [15:0] io_out,
-    output [15:0] io_oeb,
+    output reg wbs_ack_o,
+    output reg [31:0] wbs_dat_o,
 
     // IRQ
     output [2:0] irq
@@ -70,28 +60,45 @@ module user_proj_mul32
             MP <= wbs_dat_i;
     end 
 
-    assign      wbs_dat_o   =   (re_p0_reg) ?   P[31:0]   :
-                                (re_p1_reg) ?   P[63:32]  :
-                                (re_mp_reg) ?   MP  :
-                                (re_mc_reg) ?   MC  :
-                                32'hDEADBEEF;
 
-    assign      wbs_ack_o   =   (we_mc_reg || we_mp_reg || (re_p0_reg && done) || (re_p1_reg && done))   ?   1'b1    :   1'b0;
-    
+    always @(posedge sys_clk or posedge wb_rst_i) begin // Always block to assign MP
+        if(wb_rst_i)
+            wbs_ack_o <= 0;
+        else
+        begin
+            if ((we_mc_reg || we_mp_reg || (re_p0_reg && done) || (re_p1_reg && done)))
+            begin
+                wbs_ack_o <=1;
+            end
+            else 
+                wbs_ack_o <=0; 
+        end
+    end
+
+    always@(posedge sys_clk or posedge wb_rst_i) begin
+        if(wb_rst_i)
+            wbs_dat_o <= 32'hDEADBEEF;
+        else
+        begin
+            if (re_p0_reg)
+                wbs_dat_o <= P[31:0];
+            else if (re_p1_reg)
+                 wbs_dat_o <= P[63:32];
+            else if (re_mp_reg)
+                 wbs_dat_o <= MP;
+            else if (re_mc_reg)
+                 wbs_dat_o <= MC;
+            else
+               wbs_dat_o <= 32'hDEADBEEF; 
+        end
+    end
 
     always @(posedge sys_clk) 
-        start <= (we_mp_reg) ? 1'b1 : 1'b0;
-
-    
-    // IO
-    // Not used
-
-    // LA
-    // Not used
-
+        start <= (we_mp_reg && wbs_ack_o) ? 1'b1 : 1'b0;
+   
     // IRQ
     assign irq = 3'b000;	// Unused
-
+    
     mul32 mul (
         .clk(wb_clk_i),
         .rst(wb_rst_i),
