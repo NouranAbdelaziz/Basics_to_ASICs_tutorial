@@ -409,6 +409,11 @@ It shows that the test has passsed. You can check the log files resulted from co
 To harden the user project, we will use [caravel_user_project](https://github.com/efabless/caravel_user_project) template we cereated and cloned in the above step. 
 
 #### Setting up the environment
+To use the most updated OpenLane, you need to export OPENLANE_TAG variable. You will find the openlane tags [here](https://github.com/The-OpenROAD-Project/OpenLane/tags). Get the name of the latest tag, then you can run before make setup:
+```
+export OPENLANE_TAG=<tag_name>
+```
+This will install the latest openlane for you which might have more features than the one which will be installed by default by make setup. 
 
 To setup your local environment run:
 ```
@@ -445,7 +450,7 @@ For this tutorial, we will use the first option. This means we will harden the d
 2. Make a copy of the ``user_proj_example`` folder under ``user_proj_mul32/openlane`` and rename it as ``user_proj_mul32``
 3. Edit the configuration file ``config.json`` under the folder we created ``user_proj_mul32/openlane/user_proj_mul32`` you should change:
     * "DESIGN_NAME" to user_proj_mul32
-    * "VERILOG_FILES" to the paths of the three verilog files we have
+    * "VERILOG_FILES" to the paths of the three verilog files we have.
     * Remove "CLOCK_NET": "counter.clk"
     * Change "PL_TARGET_DENSITY" from 0.4 to 0.35 (5% more than the core utilization)
    You will find the changed config.json file [here]()
@@ -454,7 +459,7 @@ For this tutorial, we will use the first option. This means we will harden the d
 ```
 make user_proj_mul32
 ```
-5. View the results of the OpenLane run under ``user_proj_mul32/openlane/user_proj_mul32/runs/<run_name>``
+5.  View the results of the OpenLane run under ``user_proj_mul32/openlane/user_proj_mul32/runs/<run_name>``
 
 #### To harden the wrapper:
 1. Edit the ``user_project_wrapper.v`` in ``user_proj_mul32/verilog/rtl`` directory and edit the instance name from ``user_proj_example`` to ``user_proj_mul32``
