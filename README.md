@@ -454,8 +454,10 @@ For this tutorial, we will use the first option. This means we will harden the d
     * Remove "CLOCK_NET": "counter.clk"
     * Remove "FP_SIZING" and "DIE_AREA" variables. This change will make the floor planning sizing to be relative by default and you need to specify the "FP_CORE_UTIL".
     * Set "FP_CORE_UTIL" to be 20% and "FP_ASPECT_RATIO" to be 0.6 to make the width of the macro wider to aviod congestion in the bottom part
-   You will find the updated config.json file [here](https://github.com/NouranAbdelaziz/Design_integration_into_Caravel_tutorial/blob/main/user_proj_mul32/config.json)
-   Note: those variables are not fixed. You can try different values and see if the flow will complete successfuly with them. 
+ 
+ You will find the updated config.json file [here](https://github.com/NouranAbdelaziz/Design_integration_into_Caravel_tutorial/blob/main/user_proj_mul32/config.json)
+ 
+ Note: those variables are not fixed. You can try different values and see if the flow will complete successfuly with them. 
   
 4. Run the following command to run OpenLane ASIC flow and generate GDS for the design:
 ```
@@ -494,7 +496,9 @@ The updated user_project_wrapper could be found [here](https://github.com/Nouran
     * "EXTRA_LEFS" to point to the ``user_proj_mul32.lef`` file 
     * "EXTRA_GDS_FILES" to point to the ``user_proj_mul32.gds`` file 
     * Remove "SYNTH_ELABORATE_ONLY", "FP_PDN_ENABLE_RAILS", "RUN_FILL_INSERTION", "RUN_TAP_DECAP_INSERTION". All those variable were set in the example  that the wrapper will not have any logic in it and just a macro. But when we added the logic for the LAs and IOs to set them to 0, we had to adjust this or we will get into LVS errors.   
-   You will find the updated config.json file [here](https://github.com/NouranAbdelaziz/Design_integration_into_Caravel_tutorial/blob/main/user_project_wrapper/config.json)
+
+You will find the updated config.json file [here](https://github.com/NouranAbdelaziz/Design_integration_into_Caravel_tutorial/blob/main/user_project_wrapper/config.json)
+
 3.  Run the following command to run OpenLane ASIC flow and generate GDS for the wrapper:
 ```
 make user_project_wrapper
