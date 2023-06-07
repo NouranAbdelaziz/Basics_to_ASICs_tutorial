@@ -45,7 +45,7 @@ mkdir mul32
 cd mul32
 mkdir src
 ```
-Then add [spm.v](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/blob/main/spm.v) [mul32.v](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/blob/main/mul32.v) files under the director ``Openlane/designs/mul32/src``
+Then add [spm.v](https://github.com/NouranAbdelaziz/Design_integration_into_Caravel_tutorial/blob/main/user_proj_mul32/spm.v) [mul32.v](https://github.com/NouranAbdelaziz/Design_integration_into_Caravel_tutorial/blob/main/user_proj_mul32/mul32.v) files under the director ``Openlane/designs/mul32/src``
 Then run the following commands to export the PDK_ROOT environmental variable. It should be installed with OpenLane under OpenLane/pdks but if you installed it in another location, export it to this location.
 ```
 cd OpenLane
@@ -156,7 +156,7 @@ The following items cannot change in the hardened user project wrapper in order 
 * Core Rings Width and Offset
 * PDN Vertical and Horizontal Straps Width
 
-To integrate the SPM design with the user wrapper, we will use [user_proj_mul32](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/blob/main/user_proj_mul32.v) which will communicate with the management SoC throught the wishbone bus as shown below.  
+To integrate the SPM design with the user wrapper, we will use [user_proj_mul32](https://github.com/NouranAbdelaziz/Design_integration_into_Caravel_tutorial/blob/main/user_proj_mul32/user_proj_mul32.v) which will communicate with the management SoC throught the wishbone bus as shown below.  
 ![image](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/assets/79912650/10ecf6ca-65ab-4f5e-a60a-6b0560be42ee)
 
 
@@ -183,7 +183,7 @@ The MC will be the same as MP and P1 will be the same as P0.
 
 ![image](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/assets/79912650/4cf2a0e5-c9da-4d5d-92a5-770492156275)
 
-The verilog file for this logic is ready in [user_proj_mul32.v](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/blob/main/user_proj_mul32.v). Now, we need to harden it. 
+The verilog file for this logic is ready in [user_proj_mul32.v](https://github.com/NouranAbdelaziz/Design_integration_into_Caravel_tutorial/blob/main/user_proj_mul32/user_proj_mul32.v). Now, we need to harden it. 
 
 ## Step 3: Verifing the design using cocotb
 First, we need to create a new repository based on the caravel_user_project template and make sure your repo is public and includes a README.
@@ -446,7 +446,7 @@ To harden the project wrapper, you have three options:
 For this tutorial, we will use the first option. This means we will harden the design then integrate it as a blackbox with the wrapper and harden the wrapper. 
 
 #### To harden the design:
-1. copy [spm.v](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/blob/main/spm.v), [mul32.v](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/blob/main/mul32.v), and [user_proj_mul32.v](https://github.com/NouranAbdelaziz/Basics_to_ASICs_tutorial/blob/main/user_proj_mul32.v) into ``user_proj_mul32/verilog/rtl`` directory. 
+1. copy [spm.v](https://github.com/NouranAbdelaziz/Design_integration_into_Caravel_tutorial/blob/main/user_proj_mul32/spm.v), [mul32.v](https://github.com/NouranAbdelaziz/Design_integration_into_Caravel_tutorial/blob/main/user_proj_mul32/mul32.v), and [user_proj_mul32.v](https://github.com/NouranAbdelaziz/Design_integration_into_Caravel_tutorial/blob/main/user_proj_mul32/user_proj_mul32.v) into ``user_proj_mul32/verilog/rtl`` directory. 
 2. Make a copy of the ``user_proj_example`` folder under ``user_proj_mul32/openlane`` and rename it as ``user_proj_mul32``
 3. Edit the configuration file ``config.json`` under the folder we created ``user_proj_mul32/openlane/user_proj_mul32`` you should change:
     * "DESIGN_NAME" to user_proj_mul32
@@ -454,7 +454,7 @@ For this tutorial, we will use the first option. This means we will harden the d
     * Remove "CLOCK_NET": "counter.clk"
     * Remove "FP_SIZING" and "DIE_AREA" variables. This change will make the floor planning sizing to be relative by default and you need to specify the "FP_CORE_UTIL".
     * Set "FP_CORE_UTIL" to be 20% and "FP_ASPECT_RATIO" to be 0.6 to make the width of the macro wider to aviod congestion in the bottom part
-   You will find the updated config.json file [here]()
+   You will find the updated config.json file [here](https://github.com/NouranAbdelaziz/Design_integration_into_Caravel_tutorial/blob/main/user_proj_mul32/config.json)
    Note: those variables are not fixed. You can try different values and see if the flow will complete successfuly with them. 
   
 4. Run the following command to run OpenLane ASIC flow and generate GDS for the design:
@@ -488,13 +488,13 @@ assign io_out = 0;
 // Not used
 assign la_data_out = 0;
 ```
-The updated user_project_wrapper could be found [here]()
+The updated user_project_wrapper could be found [here](https://github.com/NouranAbdelaziz/Design_integration_into_Caravel_tutorial/blob/main/user_project_wrapper/user_project_wrapper.v)
 4.  Edit the configuration file ``config.json`` under the folder we created ``user_proj_mul32/openlane/user_project_wrapper`` you should change:
     * "VERILOG_FILES_BLACKBOX" to include the the path of the gate level netlist of ``user_proj_mul32.v``
     * "EXTRA_LEFS" to point to the ``user_proj_mul32.lef`` file 
     * "EXTRA_GDS_FILES" to point to the ``user_proj_mul32.gds`` file 
     * Remove "SYNTH_ELABORATE_ONLY", "FP_PDN_ENABLE_RAILS", "RUN_FILL_INSERTION", "RUN_TAP_DECAP_INSERTION". All those variable were set in the example  that the wrapper will not have any logic in it and just a macro. But when we added the logic for the LAs and IOs to set them to 0, we had to adjust this or we will get into LVS errors.   
-   You will find the changed config.json file [here]()
+   You will find the updated config.json file [here](https://github.com/NouranAbdelaziz/Design_integration_into_Caravel_tutorial/blob/main/user_project_wrapper/config.json)
 3.  Run the following command to run OpenLane ASIC flow and generate GDS for the wrapper:
 ```
 make user_project_wrapper
