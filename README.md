@@ -491,6 +491,7 @@ assign io_out = 0;
 assign la_data_out = 0;
 ```
 The updated user_project_wrapper could be found [here](https://github.com/NouranAbdelaziz/Design_integration_into_Caravel_tutorial/blob/main/user_project_wrapper/user_project_wrapper.v)
+
 4.  Edit the configuration file ``config.json`` under the folder we created ``user_proj_mul32/openlane/user_project_wrapper`` you should change:
     * "VERILOG_FILES_BLACKBOX" to include the the path of the gate level netlist of ``user_proj_mul32.v``
     * "EXTRA_LEFS" to point to the ``user_proj_mul32.lef`` file 
