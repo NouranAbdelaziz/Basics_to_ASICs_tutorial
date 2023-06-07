@@ -452,9 +452,10 @@ For this tutorial, we will use the first option. This means we will harden the d
     * "DESIGN_NAME" to user_proj_mul32
     * "VERILOG_FILES" to the paths of the three verilog files we have.
     * Remove "CLOCK_NET": "counter.clk"
-    * Remove "FP_SIZING" and "" variables. This will make the floor planning sizing to be relative by default and you need to specify the   "FP_CORE_UTIL".
-    * Set "FP_CORE_UTIL" to be 20 and "FP_ASPECT_RATIO" to be 0.6
-   You will find the changed config.json file [here]()
+    * Remove "FP_SIZING" and "DIE_AREA" variables. This change will make the floor planning sizing to be relative by default and you need to specify the "FP_CORE_UTIL".
+    * Set "FP_CORE_UTIL" to be 20% and "FP_ASPECT_RATIO" to be 0.6 to make the width of the macro wider to aviod congestion in the bottom part
+   You will find the updated config.json file [here]()
+   Note: those variables are not fixed. You can try different values and see if the flow will complete successfuly with them. 
   
 4. Run the following command to run OpenLane ASIC flow and generate GDS for the design:
 ```
@@ -477,7 +478,7 @@ make user_proj_mul32
 
 #### To harden the wrapper:
 1. Edit the ``user_project_wrapper.v`` in ``user_proj_mul32/verilog/rtl`` directory and edit the instance name from ``user_proj_example`` to ``user_proj_mul32``
-2. Add those lines:
+2. Add those lines to the RTL because they are not connected and not used in the mul32 design:
 ```
 // Not used
 //IO
@@ -492,7 +493,7 @@ The updated user_project_wrapper could be found [here]()
     * "VERILOG_FILES_BLACKBOX" to include the the path of the gate level netlist of ``user_proj_mul32.v``
     * "EXTRA_LEFS" to point to the ``user_proj_mul32.lef`` file 
     * "EXTRA_GDS_FILES" to point to the ``user_proj_mul32.gds`` file 
-    * Add this line ``"GLB_RT_ADJUSTMENT": 0.05,`` which is an adjusment made for this project not something fixed
+    * Remove "SYNTH_ELABORATE_ONLY", "FP_PDN_ENABLE_RAILS", "RUN_FILL_INSERTION", "RUN_TAP_DECAP_INSERTION". All those variable were set in the example  that the wrapper will not have any logic in it and just a macro. But when we added the logic for the LAs and IOs to set them to 0, we had to adjust this or we will get into LVS errors.   
    You will find the changed config.json file [here]()
 3.  Run the following command to run OpenLane ASIC flow and generate GDS for the wrapper:
 ```
@@ -501,8 +502,4 @@ make user_project_wrapper
 Now you have the final GDS of the wrapper in ``user_proj_mul32/openlane/user_project_wrapper/runs/<run_tag>/results/final/gds``
 This is the final GDS layout of the wrapper:
 
-As you can see the design macro is placed in the middle of the layout which is not very good because long wires are used to connect the IOs which increases the delay. You can try changing the macro.cfg file to: 
-```
-mprj 1175 800 N
-```
-and try to harden it agian and see the difference in the layout. 
+![image](https://github.com/NouranAbdelaziz/Design_integration_into_Caravel_tutorial/assets/79912650/f464f6c6-5379-4957-8487-0fb8e1bf599f)
