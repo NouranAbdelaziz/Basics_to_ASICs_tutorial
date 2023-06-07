@@ -492,7 +492,7 @@ assign la_data_out = 0;
 ```
 The updated user_project_wrapper could be found [here](https://github.com/NouranAbdelaziz/Design_integration_into_Caravel_tutorial/blob/main/user_project_wrapper/user_project_wrapper.v)
 
-4.  Edit the configuration file ``config.json`` under the folder we created ``user_proj_mul32/openlane/user_project_wrapper`` you should change:
+3.  Edit the configuration file ``config.json`` under the folder we created ``user_proj_mul32/openlane/user_project_wrapper`` you should change:
     * "VERILOG_FILES_BLACKBOX" to include the the path of the gate level netlist of ``user_proj_mul32.v``
     * "EXTRA_LEFS" to point to the ``user_proj_mul32.lef`` file 
     * "EXTRA_GDS_FILES" to point to the ``user_proj_mul32.gds`` file 
@@ -500,7 +500,7 @@ The updated user_project_wrapper could be found [here](https://github.com/Nouran
 
 You will find the updated config.json file [here](https://github.com/NouranAbdelaziz/Design_integration_into_Caravel_tutorial/blob/main/user_project_wrapper/config.json)
 
-3.  Run the following command to run OpenLane ASIC flow and generate GDS for the wrapper:
+4.  Run the following command to run OpenLane ASIC flow and generate GDS for the wrapper:
 ```
 make user_project_wrapper
 ``` 
