@@ -478,7 +478,7 @@ make user_proj_mul32
 
 #### To harden the wrapper:
 1. Edit the ``user_project_wrapper.v`` in ``user_proj_mul32/verilog/rtl`` directory and edit the instance name from ``user_proj_example`` to ``user_proj_mul32``
-2. Add those lines to the RTL because they are not connected and not used in the mul32 design:
+2. Add those lines to the wrapper RTL because they are not connected and not used in the mul32 design:
 ```
 // Not used
 //IO
